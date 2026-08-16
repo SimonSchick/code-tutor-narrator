@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# narrate — drive a VS Code walkthrough: reveal + highlight a range, then speak.
+#
+#   narrate --file src/main.rs --lines 12-20 --note "the borrow" --say "Here we take a reference..."
+#   narrate --say "Let's start with ownership."     # talk, no highlight
+#   narrate --clear                                  # drop the highlight
+#
+# Voice is configurable:
+#   TUTOR_VOICE=Samantha  TUTOR_RATE=175            # macOS `say`
+#   TUTOR_TTS_CMD='my-tts'                          # any command reading text on stdin
+#   TUTOR_MUTE=1                                    # highlight only, stay quiet
+
+set -euo pipefail
+
+CUE_FILE="${TUTOR_CUE_FILE:-$HOME/.claude/tutor/cue.json}"
+VOICE="${TUTOR_VOICE:-Samantha}"
+RATE="${TUTOR_RATE:-175}"
+
+file="" lines="" note="" text="" select="false" async="false" clear="false"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --file)   file="$2"; shift 2 ;;
+    --lines)  lines="$2"; shift 2 ;;
+    --note)   note="$2"; shift 2 ;;
+    --say)    text="$2"; shift 2 ;;
+    --select) select="true"; shift ;;
+    --async)  async="true"; shift ;;
+    --clear)  clear="true"; shift ;;
+    -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "narrate: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+mkdir -p "$(dirname "$CUE_FILE")"
+
+write_cue() {
+  local tmp
+  tmp="$(mktemp "${CUE_FILE}.XXXXXX")"
+  printf '%s' "$1" > "$tmp"
+  mv -f "$tmp" "$CUE_FILE"
+}
+
+json_escape() {
+  printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
+}
+
+if [[ "$clear" == "true" ]]; then
+  write_cue '{"action":"clear"}'
+  exit 0
+fi
+
+if [[ -n "$file" ]]; then
+  start="${lines%%-*}"
+  end="${lines##*-}"
+  [[ -z "$start" ]] && start=1
+  [[ -z "$end" ]] && end="$start"
+  write_cue "$(printf '{"file":%s,"start":%s,"end":%s,"note":%s,"select":%s,"seq":%s}' \
+    "$(json_escape "$file")" "$start" "$end" "$(json_escape "$note")" "$select" "$(date +%s%N)")"
+  # Give the editor a beat to scroll before the voice starts.
+  sleep 0.35
+fi
+
+if [[ -n "$text" && "${TUTOR_MUTE:-0}" != "1" ]]; then
+  if [[ -n "${TUTOR_TTS_CMD:-}" ]]; then
+    speak() { printf '%s' "$text" | eval "$TUTOR_TTS_CMD"; }
+  else
+    speak() { say -v "$VOICE" -r "$RATE" "$text"; }
+  fi
+  if [[ "$async" == "true" ]]; then
+    speak &
+  else
+    speak
+  fi
+fi

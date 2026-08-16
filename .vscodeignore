@@ -7,3 +7,5 @@ tsconfig.json
 package-lock.json
 *.vsix
 .gitignore
+bin/**
+skill/**

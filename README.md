@@ -1,7 +1,30 @@
 # Code Tutor Narrator
 
+> ### ⚠️ Vibe-coded by an AI, start to finish
+>
+> **Every line of this extension was written by Claude** (Claude Code, Opus 5), across a
+> handful of conversational sessions. I directed it and listened to the output; I did not
+> write it, and I have not reviewed most of it line by line.
+>
+> What that means for you:
+>
+> - **Treat it as a prototype**, not as engineering you can lean on. It works for me, on
+>   my machine, for the thing I use it for.
+> - It spawns child processes, reads your settings, and sends the text you narrate to a
+>   third-party API. **Read the source before you run it** — it's ~1000 lines, and that
+>   is genuinely the whole review that has happened.
+> - The tests are real and they pass, but they were written by the same AI that wrote the
+>   code, so they encode the same assumptions and blind spots.
+> - Design decisions in here were made mid-conversation and may be wrong in ways neither
+>   of us noticed.
+>
+> Issues and PRs are welcome, but no support is promised. If you need something
+> dependable, this isn't it.
+
 Lets an agent drive VS Code like a tutor: scroll to a range of code, highlight it,
 dim everything else, and narrate it out loud — then read back what you're looking at.
+
+Requires macOS: speech goes through `say` and playback through `afplay`.
 
 It exposes an **MCP server** over loopback HTTP, so Claude Code calls it as ordinary
 tools rather than shelling out.
@@ -264,10 +287,32 @@ a single billed character. Everything that touches the editor lives in
 
 ## Without an agent
 
-A cue file is also watched, so you can drive it from a terminal:
+A cue file is also watched, so you can drive it from a terminal. `bin/narrate` is a
+small bash wrapper around that:
 
 ```sh
-~/.claude/tutor/narrate --file src/main.rs --lines 12-20 --note "the borrow" \
+./bin/narrate --file src/main.rs --lines 12-20 --note "the borrow" \
   --say "Here we take a reference instead of moving the value."
-~/.claude/tutor/narrate --clear
+./bin/narrate --clear
 ```
+
+It writes to `~/.claude/tutor/cue.json` and speaks with `say`, configurable through
+`TUTOR_VOICE`, `TUTOR_RATE`, `TUTOR_TTS_CMD`, and `TUTOR_MUTE`. It does not go through
+the MCP server at all, so it works without Claude Code.
+
+## The agent side
+
+`skill/SKILL.md` is the [Claude Code skill](https://code.claude.com/docs/en/skills) that
+teaches an agent how to tutor with these tools — when to narrate, how long a beat should
+be, when to stop and ask. Copy it into your skills directory to use it:
+
+```sh
+mkdir -p ~/.claude/skills/tutor && cp skill/SKILL.md ~/.claude/skills/tutor/
+```
+
+The extension is usable without it; you'll just be explaining the tools to your agent
+yourself each time.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

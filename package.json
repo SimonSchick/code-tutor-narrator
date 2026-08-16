@@ -4,6 +4,19 @@
   "description": "Lets an agent drive VS Code as a tutor: scroll to code, highlight it, and narrate it aloud. Exposes an MCP server.",
   "version": "0.5.1",
   "publisher": "local",
+  "license": "MIT",
+  "author": "Simon Schick",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SimonSchick/code-tutor-narrator.git"
+  },
+  "keywords": [
+    "mcp",
+    "tts",
+    "narration",
+    "claude-code",
+    "elevenlabs"
+  ],
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -15,7 +28,7 @@
     "compile": "tsc -p .",
     "watch": "tsc -p . --watch",
     "test": "tsc -p . && node test/test-mcp.js && node test/test-tts.js",
-    "package": "vsce package --allow-missing-repository --skip-license",
+    "package": "vsce package",
     "install-ext": "code --install-extension $(ls -t *.vsix | head -1) --force"
   },
   "devDependencies": {
