@@ -2,7 +2,7 @@
   "name": "code-tutor-narrator",
   "displayName": "Code Tutor Narrator",
   "description": "Lets an agent drive VS Code as a tutor: scroll to code, highlight it, and narrate it aloud. Exposes an MCP server.",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "local",
   "engines": {
     "vscode": "^1.80.0"
@@ -50,12 +50,12 @@
         "codeTutor.voice": {
           "type": "string",
           "default": "Samantha",
-          "description": "macOS `say` voice used for narration. Run `say -v '?'` to list."
+          "description": "macOS `say` voice used for narration. Applies ONLY to the `say` provider; ElevenLabs uses codeTutor.elevenlabs.voiceId. Run `say -v '?'` to list."
         },
         "codeTutor.rate": {
           "type": "number",
           "default": 175,
-          "description": "Words per minute for narration."
+          "description": "Words per minute. Applies ONLY to the `say` provider — it is ignored entirely by `elevenlabs` and `command`. To speed up ElevenLabs narration use codeTutor.playbackRate."
         },
         "codeTutor.tts.provider": {
           "type": "string",

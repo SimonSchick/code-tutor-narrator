@@ -191,8 +191,8 @@ would for character work.
 | `codeTutor.port` | `51730` | Loopback port for the MCP server. |
 | `codeTutor.tts.provider` | `say` | `say`, `elevenlabs`, or `command`. |
 | `codeTutor.tts.command` | — | Command for the `command` provider; text arrives on stdin. |
-| `codeTutor.voice` | `Samantha` | macOS `say` voice. `say -v '?'` lists them. |
-| `codeTutor.rate` | `175` | Words per minute (`say` only). |
+| `codeTutor.voice` | `Samantha` | macOS `say` voice. **`say` only** — ElevenLabs uses `elevenlabs.voiceId`. `say -v '?'` lists them. |
+| `codeTutor.rate` | `175` | Words per minute. **`say` only** — silently ignored by the other providers. |
 | `codeTutor.elevenlabs.voiceId` | Rachel | Voice id. Plan-gated — see above. Only applies when the provider is `elevenlabs`; the `say` provider uses `codeTutor.voice`. |
 | `codeTutor.elevenlabs.modelId` | `eleven_flash_v2_5` | Model id. |
 | `codeTutor.elevenlabs.baseUrl` | `https://api.elevenlabs.io` | Override for a proxy or a test stub. |
