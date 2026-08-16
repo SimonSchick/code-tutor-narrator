@@ -3,7 +3,7 @@
 //   node test/test-mcp.js
 
 const path = require("path");
-const { createMcpServer, stopSpeaking } = require(path.join(__dirname, "..", "out", "mcp.js"));
+const { createMcpServer } = require(path.join(__dirname, "..", "out", "mcp.js"));
 
 const PORT = 51999;
 const tools = [
@@ -95,8 +95,6 @@ function check(label, cond, detail) {
     method: "POST", headers: { "Content-Type": "application/json" }, body: "{not json",
   });
   check("malformed body -> parse error", (await raw.json())?.error?.code === -32700, "no parse error");
-
-  check("stopSpeaking is a no-op when nothing is speaking", stopSpeaking() === false, "returned true");
 
   server.close();
   console.log(failures ? `\n${failures} FAILURE(S)` : "\nall checks passed");

@@ -3,7 +3,8 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import * as http from "http";
-import { createMcpServer, speak, stopSpeaking, Tool } from "./mcp";
+import { createMcpServer, Tool } from "./mcp";
+import { createSpeaker, Provider, Speaker, TtsConfig } from "./tts";
 
 /**
  * Turns VS Code into something an agent can drive as a tutor: it can scroll the
@@ -19,6 +20,9 @@ let dimRest: vscode.TextEditorDecorationType;
 let statusItem: vscode.StatusBarItem;
 let output: vscode.OutputChannel;
 let server: http.Server | undefined;
+let speaker: Speaker;
+/** Cached from SecretStorage so speaking stays synchronous-ish. */
+let elevenLabsKey: string | undefined;
 
 function config<T>(key: string, fallback: T): T {
   const value = vscode.workspace.getConfiguration("codeTutor").get<T>(key);
@@ -29,6 +33,29 @@ function config<T>(key: string, fallback: T): T {
     return fallback;
   }
   return value;
+}
+
+const SECRET_KEY = "codeTutor.elevenlabs.apiKey";
+
+function ttsConfig(cacheDir: string): TtsConfig {
+  return {
+    provider: config<Provider>("tts.provider", "say"),
+    voice:
+      config<Provider>("tts.provider", "say") === "elevenlabs"
+        ? config("elevenlabs.voiceId", "21m00Tcm4TlvDq8ikWAM")
+        : config("voice", "Samantha"),
+    rate: config("rate", 175),
+    elevenlabs: {
+      apiKey: elevenLabsKey ?? process.env["ELEVENLABS_API_KEY"],
+      modelId: config("elevenlabs.modelId", "eleven_flash_v2_5"),
+      baseUrl: config("elevenlabs.baseUrl", "https://api.elevenlabs.io"),
+      stability: config("elevenlabs.stability", 0.5),
+      similarityBoost: config("elevenlabs.similarityBoost", 0.75),
+      speed: config("elevenlabs.speed", 1),
+    },
+    command: config<string | undefined>("tts.command", undefined),
+    cacheDir: config("cacheAudio", true) ? cacheDir : "",
+  };
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -53,18 +80,54 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   context.subscriptions.push(highlight, dimRest, statusItem, output);
 
+  const cacheDir = path.join(context.globalStorageUri.fsPath, "audio");
+  speaker = createSpeaker(() => ttsConfig(cacheDir));
+
+  // Load the stored key before anything can ask to speak.
+  void context.secrets.get(SECRET_KEY).then((value) => {
+    elevenLabsKey = value;
+  });
+  context.subscriptions.push(
+    context.secrets.onDidChange((event) => {
+      if (event.key === SECRET_KEY) {
+        void context.secrets.get(SECRET_KEY).then((value) => {
+          elevenLabsKey = value;
+        });
+      }
+    })
+  );
+
   startServer(context);
   watchCueFile(context);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("codeTutor.clear", () => {
-      stopSpeaking();
+      speaker.stop();
       clear();
     }),
     vscode.commands.registerCommand("codeTutor.showStatus", () => {
+      const provider = config<Provider>("tts.provider", "say");
       void vscode.window.showInformationMessage(
-        `Code Tutor MCP on http://127.0.0.1:${config("port", 51730)}/mcp`
+        `Code Tutor MCP on http://127.0.0.1:${config("port", 51730)}/mcp — voice: ${provider}`
       );
+    }),
+    vscode.commands.registerCommand("codeTutor.setApiKey", async () => {
+      const key = await vscode.window.showInputBox({
+        title: "ElevenLabs API key",
+        prompt: "Stored in the OS keychain, not in settings.json.",
+        password: true,
+        ignoreFocusOut: true,
+      });
+      if (key === undefined) {
+        return;
+      }
+      if (key.trim() === "") {
+        await context.secrets.delete(SECRET_KEY);
+        void vscode.window.showInformationMessage("Code Tutor: API key cleared.");
+        return;
+      }
+      await context.secrets.store(SECRET_KEY, key.trim());
+      void vscode.window.showInformationMessage("Code Tutor: API key saved.");
     })
   );
 }
@@ -162,11 +225,6 @@ function optionalBoolean(
 // ------------------------------------------------------------------- tools
 
 function buildTools(): Tool[] {
-  const voiceSettings = () => ({
-    voice: config("voice", "Samantha"),
-    rate: config("rate", 175),
-  });
-
   return [
     {
       name: "show_code",
@@ -212,7 +270,7 @@ function buildTools(): Tool[] {
         });
         const narration = optionalString(args, "say");
         if (narration) {
-          await speak({ text: narration, wait: true, ...voiceSettings() });
+          await speaker.speak(narration, true);
         }
         return numbered(revealed.doc, revealed.startLine, revealed.endLine);
       },
@@ -233,11 +291,10 @@ function buildTools(): Tool[] {
         required: ["text"],
       },
       run: async (args) =>
-        speak({
-          text: requireString(args, "text"),
-          wait: optionalBoolean(args, "wait") ?? true,
-          ...voiceSettings(),
-        }),
+        speaker.speak(
+          requireString(args, "text"),
+          optionalBoolean(args, "wait") ?? true
+        ),
     },
     {
       name: "editor_state",
@@ -251,7 +308,7 @@ function buildTools(): Tool[] {
       description: "Remove the tutor highlight and stop any narration.",
       inputSchema: { type: "object", properties: {} },
       run: async () => {
-        stopSpeaking();
+        speaker.stop();
         clear();
         return "cleared";
       },
@@ -485,6 +542,6 @@ function watchCueFile(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
-  stopSpeaking();
+  speaker?.stop();
   server?.close();
 }

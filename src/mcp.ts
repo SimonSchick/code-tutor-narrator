@@ -1,5 +1,4 @@
 import * as http from "http";
-import { execFile, ChildProcess } from "child_process";
 
 /**
  * A dependency-free MCP server (JSON-RPC 2.0 over streamable HTTP, POST only)
@@ -217,52 +216,4 @@ function sendJson(
     "Content-Length": Buffer.byteLength(data),
   });
   res.end(data);
-}
-
-// ---------------------------------------------------------------- speech
-
-export interface SpeakOptions {
-  text: string;
-  voice: string;
-  rate: number;
-  wait: boolean;
-}
-
-let speaking: ChildProcess | null = null;
-
-/** Speak text aloud, cancelling whatever was being said before. */
-export function speak(options: SpeakOptions): Promise<string> {
-  stopSpeaking();
-  return new Promise<string>((resolve, reject) => {
-    const child = execFile(
-      "say",
-      ["-v", options.voice, "-r", String(options.rate), "--", options.text],
-      (error) => {
-        speaking = null;
-        if (error) {
-          // A kill is an intentional interruption, not a failure.
-          if ((error as NodeJS.ErrnoException & { killed?: boolean }).killed) {
-            resolve("interrupted");
-            return;
-          }
-          reject(error);
-          return;
-        }
-        resolve("done");
-      }
-    );
-    speaking = child;
-    if (!options.wait) {
-      resolve("speaking");
-    }
-  });
-}
-
-export function stopSpeaking(): boolean {
-  if (speaking) {
-    speaking.kill();
-    speaking = null;
-    return true;
-  }
-  return false;
 }
