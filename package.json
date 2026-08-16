@@ -2,7 +2,7 @@
   "name": "code-tutor-narrator",
   "displayName": "Code Tutor Narrator",
   "description": "Lets an agent drive VS Code as a tutor: scroll to code, highlight it, and narrate it aloud. Exposes an MCP server.",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "publisher": "local",
   "engines": {
     "vscode": "^1.80.0"
@@ -80,7 +80,7 @@
         "codeTutor.elevenlabs.voiceId": {
           "type": "string",
           "default": "21m00Tcm4TlvDq8ikWAM",
-          "description": "ElevenLabs voice id. Find them at elevenlabs.io/app/voice-library."
+          "description": "ElevenLabs voice id. Voice Library ids are paid-only via the API and fail with 402 on a free plan — use a default voice, or add a library voice to your workspace to get an id you own."
         },
         "codeTutor.elevenlabs.modelId": {
           "type": "string",
