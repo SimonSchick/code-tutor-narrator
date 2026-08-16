@@ -178,7 +178,7 @@ would for character work.
 | `codeTutor.elevenlabs.baseUrl` | `https://api.elevenlabs.io` | Override for a proxy or a test stub. |
 | `codeTutor.elevenlabs.stability` | `0.5` | 0 is expressive and variable, 1 is flat. |
 | `codeTutor.elevenlabs.similarityBoost` | `0.75` | How closely to match the reference voice. |
-| `codeTutor.elevenlabs.speed` | `1` | Speech speed multiplier. |
+| `codeTutor.elevenlabs.speed` | `1` | Speech speed multiplier. Must be 0.7–1.2; outside that the API returns 400 and nothing is spoken. |
 | `codeTutor.cacheAudio` | `true` | Cache synthesised audio so replays are free. |
 
 Blank values fall back to the default rather than being sent as empty, so clearing a
