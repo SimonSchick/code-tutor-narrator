@@ -32,10 +32,10 @@
     "install-ext": "code --install-extension $(ls -t *.vsix | head -1) --force"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.2.0",
     "@types/vscode": "^1.80.0",
-    "typescript": "^5.7.2",
-    "@vscode/vsce": "^3.2.1"
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^7.0.2"
   },
   "contributes": {
     "commands": [

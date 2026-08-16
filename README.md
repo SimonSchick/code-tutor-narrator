@@ -1,5 +1,7 @@
 # Code Tutor Narrator
 
+[![CI](https://github.com/SimonSchick/code-tutor-narrator/actions/workflows/ci.yml/badge.svg)](https://github.com/SimonSchick/code-tutor-narrator/actions/workflows/ci.yml)
+
 > ### ⚠️ Vibe-coded by an AI, start to finish
 >
 > **Every line of this extension was written by Claude** (Claude Code, Opus 5), across a
