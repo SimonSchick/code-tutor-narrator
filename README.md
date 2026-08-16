@@ -11,12 +11,32 @@ tools rather than shelling out.
 | Tool | What it does |
 | --- | --- |
 | `show_code` | Scrolls to `file` + `start_line`–`end_line`, highlights it, pins an optional `note` beside it, optionally speaks `say`. Returns the numbered source lines. |
+| `walkthrough` | A planned sequence of `beats`, played back-to-back with no pauses. Each beat takes the same fields as `show_code`. |
 | `speak` | Says something aloud without moving the editor. Interrupts narration in progress. |
 | `editor_state` | Active file, cursor line, current selection, visible line range, and any errors. |
 | `clear_highlight` | Drops the highlight and stops narration. |
 
 `show_code` blocks until narration finishes, so consecutive calls pace themselves
 into a walkthrough instead of talking over each other.
+
+### `show_code` or `walkthrough`?
+
+Chained `show_code` calls leave an audible gap between beats, and the gap is *not* TTS
+latency — it is the agent's round-trip to compose the next call. Nothing on this side
+can shrink it.
+
+`walkthrough` removes it by taking the whole sequence at once and synthesising beat
+N+1 while N is still speaking, so playback is continuous. The trade is adaptivity: you
+commit to all the narration before reading any of the code back.
+
+- **`walkthrough`** — the tour you have already planned, an overview of a file you've
+  read, anything scripted.
+- **`show_code`** — you need the returned source of one beat before deciding the next,
+  the user is likely to interrupt, or you're following their cursor.
+
+Mixing them is normal: `walkthrough` a section, then drop to `show_code` for a part
+worth pausing on. Interrupting a `walkthrough` stops it and reports which beat it
+reached.
 
 ## Driving it from an agent
 
@@ -25,6 +45,8 @@ cold — the skill carries the pedagogy; this section covers the mechanics.
 
 **Sequence the calls.** `show_code` blocks. Issue one, wait, issue the next. Batching
 them into a single parallel block defeats the pacing and produces overlapping audio.
+When the beats are already planned, use `walkthrough` instead of chaining — same
+result, no gaps.
 
 **Open with `editor_state`.** It reports the active file, cursor line, selection,
 visible range, and current diagnostics. If something is selected or the cursor is

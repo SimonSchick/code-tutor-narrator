@@ -98,6 +98,36 @@ const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "tutor-cache-"));
   await synthesize("Ownership means one owner.", config({ elevenlabs: { modelId: "eleven_multilingual_v2" } }));
   check("changing the model busts the cache", requests.length === 3, `${requests.length} requests`);
 
+  // --- prefetch ------------------------------------------------------------
+  async function settle(done, timeoutMs = 1000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline && !done()) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }
+
+  const before = requests.length;
+  const cachedBefore = fs.readdirSync(cacheDir).length;
+  const warmer = createSpeaker(() => config());
+  warmer.prefetch("warmed ahead of time");
+  // The next beat calls stop() before it speaks. That must not cancel a
+  // warm-up already in flight, or prefetching would be worse than useless.
+  warmer.stop();
+  await settle(() => fs.readdirSync(cacheDir).length > cachedBefore);
+  check("prefetch synthesises in the background",
+    requests.length === before + 1, `${requests.length - before} requests`);
+
+  const warmed = await synthesize("warmed ahead of time", config());
+  check("prefetch survives stop() and serves the cache",
+    requests.length === before + 1 && fs.existsSync(warmed),
+    `${requests.length - before} requests`);
+
+  const sayer = createSpeaker(() => ({ ...config(), provider: "say" }));
+  sayer.prefetch("nothing to synthesise here");
+  await settle(() => false, 50);
+  check("prefetch is a no-op for non-elevenlabs providers",
+    requests.length === before + 1, `${requests.length - before} requests`);
+
   // --- failure modes -------------------------------------------------------
   try {
     await synthesize("hi", config({ elevenlabs: { apiKey: undefined } }));

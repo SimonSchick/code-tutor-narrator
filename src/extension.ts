@@ -223,6 +223,22 @@ function optionalBoolean(
   return value;
 }
 
+function requireArray(
+  args: Record<string, unknown>,
+  key: string
+): Record<string, unknown>[] {
+  const value = args[key];
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`"${key}" must be a non-empty array`);
+  }
+  return value.map((item, index) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      throw new Error(`"${key}[${index}]" must be an object`);
+    }
+    return item as Record<string, unknown>;
+  });
+}
+
 // ------------------------------------------------------------------- tools
 
 function buildTools(): Tool[] {
@@ -274,6 +290,103 @@ function buildTools(): Tool[] {
           await speaker.speak(narration, true);
         }
         return numbered(revealed.doc, revealed.startLine, revealed.endLine);
+      },
+    },
+    {
+      name: "walkthrough",
+      description:
+        "Play a planned sequence of beats back-to-back with no pauses between them: each one scrolls, highlights and narrates, while the next is synthesised in the background. Use this when you already know what every beat will say. Use show_code instead when you need to read the code back before deciding what to say next, or when the user is likely to interrupt.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          file: {
+            type: "string",
+            description:
+              "Default file for every beat, absolute or relative to the workspace root.",
+          },
+          beats: {
+            type: "array",
+            description:
+              "Beats to play in order. One idea each: 5-20 lines, 1-3 spoken sentences.",
+            items: {
+              type: "object",
+              properties: {
+                file: {
+                  type: "string",
+                  description: "Overrides the top-level file for this beat.",
+                },
+                start_line: {
+                  type: "number",
+                  description: "First line, 1-indexed.",
+                },
+                end_line: {
+                  type: "number",
+                  description: "Last line, inclusive. Defaults to start_line.",
+                },
+                note: {
+                  type: "string",
+                  description: "Short label pinned beside the code.",
+                },
+                say: { type: "string", description: "Narration for this beat." },
+                select: {
+                  type: "boolean",
+                  description: "Also make it a real text selection.",
+                },
+              },
+              required: ["start_line"],
+            },
+          },
+        },
+        required: ["beats"],
+      },
+      run: async (args) => {
+        const fallbackFile = optionalString(args, "file");
+        const beats = requireArray(args, "beats");
+        const sections: string[] = [];
+
+        for (let index = 0; index < beats.length; index += 1) {
+          const beat = beats[index];
+          const file = optionalString(beat, "file") ?? fallbackFile;
+          if (!file) {
+            throw new Error(
+              `beat ${index + 1} has no "file" and no top-level "file" was given`
+            );
+          }
+
+          const revealed = await reveal({
+            file,
+            startLine: requireNumber(beat, "start_line"),
+            endLine: optionalNumber(beat, "end_line"),
+            note: optionalString(beat, "note"),
+            select: optionalBoolean(beat, "select") ?? false,
+          });
+          sections.push(
+            numbered(revealed.doc, revealed.startLine, revealed.endLine)
+          );
+
+          // Warm the next beat while this one is still talking. That overlap is
+          // the whole point of this tool: it is what removes the gap.
+          const upcoming = beats[index + 1];
+          if (upcoming) {
+            const nextNarration = optionalString(upcoming, "say");
+            if (nextNarration) {
+              speaker.prefetch(nextNarration);
+            }
+          }
+
+          const narration = optionalString(beat, "say");
+          if (narration) {
+            const outcome = await speaker.speak(narration, true);
+            if (outcome === "interrupted") {
+              sections.push(
+                `(stopped after beat ${index + 1} of ${beats.length})`
+              );
+              break;
+            }
+          }
+        }
+
+        return sections.join("\n\n");
       },
     },
     {
