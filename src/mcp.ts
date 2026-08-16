@@ -53,6 +53,8 @@ class RpcError extends Error {
 export interface McpServerOptions {
   port: number;
   tools: Tool[];
+  /** Reported in `initialize`. Comes from package.json so it can't drift. */
+  version: string;
   onLog?: (line: string) => void;
 }
 
@@ -174,7 +176,7 @@ async function dispatch(
         protocolVersion:
           typeof requested === "string" ? requested : PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "code-tutor", version: "0.2.0" },
+        serverInfo: { name: "code-tutor", version: options.version },
       };
     }
     case "ping":

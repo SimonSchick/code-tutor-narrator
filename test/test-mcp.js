@@ -21,7 +21,7 @@ const tools = [
   },
 ];
 
-const server = createMcpServer({ port: PORT, tools, onLog: () => {} });
+const server = createMcpServer({ port: PORT, tools, version: "9.9.9", onLog: () => {} });
 
 async function rpc(payload) {
   const res = await fetch(`http://127.0.0.1:${PORT}/mcp`, {
@@ -47,6 +47,11 @@ function check(label, cond, detail) {
   check("initialize returns serverInfo + tools capability",
     init.body?.result?.serverInfo?.name === "code-tutor" && !!init.body.result.capabilities.tools,
     JSON.stringify(init.body));
+  // Regression: this was once a hardcoded literal that silently went stale,
+  // making "which build is running?" impossible to answer from the outside.
+  check("serverInfo.version reflects the version passed in, not a literal",
+    init.body?.result?.serverInfo?.version === "9.9.9",
+    JSON.stringify(init.body?.result?.serverInfo));
   check("initialize echoes protocol version",
     init.body?.result?.protocolVersion === "2025-06-18", JSON.stringify(init.body));
 

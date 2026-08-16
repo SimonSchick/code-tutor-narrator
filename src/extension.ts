@@ -138,6 +138,7 @@ function startServer(context: vscode.ExtensionContext): void {
     server = createMcpServer({
       port,
       tools: buildTools(),
+      version: String(context.extension.packageJSON.version ?? "unknown"),
       onLog: (line) => output.appendLine(line),
     });
     server.on("error", (error: Error) =>

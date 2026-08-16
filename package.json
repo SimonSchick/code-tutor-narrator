@@ -2,7 +2,7 @@
   "name": "code-tutor-narrator",
   "displayName": "Code Tutor Narrator",
   "description": "Lets an agent drive VS Code as a tutor: scroll to code, highlight it, and narrate it aloud. Exposes an MCP server.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "local",
   "engines": {
     "vscode": "^1.80.0"
