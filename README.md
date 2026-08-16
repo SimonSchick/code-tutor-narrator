@@ -91,6 +91,25 @@ claude mcp add --transport http tutor http://127.0.0.1:51730/mcp --scope user
 The server only exists while VS Code is open. If Claude Code reports the `tutor`
 server as unreachable, that just means no window is running.
 
+**Raise the tool timeout.** `walkthrough` holds its response open for as long as the
+narration lasts, and an HTTP MCP server gets only 60 seconds per request by default —
+so a tour of any length reports `The operation timed out` while the audio carries on
+playing. Progress notifications do *not* extend that window; only config does. Add a
+`timeout` to the server entry in `~/.claude.json`:
+
+```jsonc
+"tutor": {
+  "type": "http",
+  "url": "http://127.0.0.1:51730/mcp",
+  "timeout": 600000
+}
+```
+
+Restart Claude Code afterwards — the value is read at connect. Note the separate
+five-minute *idle* timeout for HTTP servers: a single `walkthrough` that narrates for
+longer than that aborts regardless, so keep one call under ~5 minutes of speech, or
+raise `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`.
+
 ## Choosing a voice
 
 `codeTutor.tts.provider` picks the backend. The built-in macOS voices are the
@@ -210,6 +229,8 @@ setting is the same as unsetting it.
 | Symptom | Cause |
 | --- | --- |
 | `connect ECONNREFUSED 127.0.0.1:51730` | No VS Code window. The server lives inside the extension host; nothing to reconnect to. |
+| `walkthrough` returns "The operation timed out" | The call outlived the MCP request window, but the narration is still playing. **Never retry** — you'd double-trigger audio. Raise the per-server `timeout`; see *Install*. |
+| A new tool doesn't appear after installing | The MCP client caches `tools/list` from when it connected. Reloading VS Code is not enough; reconnect the server (`/mcp` in Claude Code). |
 | `402 paid_plan_required` | Library voice on a free plan. See *Choosing a voice*. |
 | `401` from ElevenLabs | No key stored. Run **Code Tutor: Set ElevenLabs API Key**, or export `ELEVENLABS_API_KEY`. |
 | A settings change does nothing | Stale build. Config is read per call, so if a new setting is ignored the installed VSIX predates it. |
