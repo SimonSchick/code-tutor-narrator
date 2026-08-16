@@ -7,7 +7,7 @@ const http = require("http");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { synthesize, createSpeaker } = require(path.join(__dirname, "..", "out", "tts.js"));
+const { synthesize, createSpeaker, playbackArgs } = require(path.join(__dirname, "..", "out", "tts.js"));
 
 let failures = 0;
 function check(label, cond, detail) {
@@ -127,6 +127,18 @@ const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "tutor-cache-"));
   await settle(() => false, 50);
   check("prefetch is a no-op for non-elevenlabs providers",
     requests.length === before + 1, `${requests.length - before} requests`);
+
+  // --- playback rate -------------------------------------------------------
+  check("playbackRate of 1 adds no flags",
+    JSON.stringify(playbackArgs("/tmp/a.mp3", 1)) === '["/tmp/a.mp3"]',
+    JSON.stringify(playbackArgs("/tmp/a.mp3", 1)));
+  check("playbackRate asks for the pitch-preserving algorithm",
+    JSON.stringify(playbackArgs("/tmp/a.mp3", 1.6)) === '["-r","1.6","-q","1","/tmp/a.mp3"]',
+    JSON.stringify(playbackArgs("/tmp/a.mp3", 1.6)));
+  check("an unset or nonsense playbackRate is ignored",
+    JSON.stringify(playbackArgs("/tmp/a.mp3", undefined)) === '["/tmp/a.mp3"]' &&
+    JSON.stringify(playbackArgs("/tmp/a.mp3", 0)) === '["/tmp/a.mp3"]',
+    "did not fall back to plain playback");
 
   // --- failure modes -------------------------------------------------------
   try {

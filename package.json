@@ -2,7 +2,7 @@
   "name": "code-tutor-narrator",
   "displayName": "Code Tutor Narrator",
   "description": "Lets an agent drive VS Code as a tutor: scroll to code, highlight it, and narrate it aloud. Exposes an MCP server.",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "local",
   "engines": {
     "vscode": "^1.80.0"
@@ -107,7 +107,14 @@
           "default": 1,
           "minimum": 0.7,
           "maximum": 1.2,
-          "description": "Speech speed multiplier. ElevenLabs rejects anything outside 0.7–1.2. For faster than that, use the `say` provider with codeTutor.rate."
+          "description": "Speech speed multiplier applied during synthesis. ElevenLabs rejects anything outside 0.7–1.2 — for faster narration than that, use codeTutor.playbackRate instead."
+        },
+        "codeTutor.playbackRate": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.5,
+          "maximum": 4,
+          "description": "Speeds up playback locally, after synthesis. Stacks on top of elevenlabs.speed and has no 1.2 ceiling, so this is the knob for genuinely fast narration. Pitch is preserved. Costs nothing and does not invalidate cached audio."
         },
         "codeTutor.cacheAudio": {
           "type": "boolean",

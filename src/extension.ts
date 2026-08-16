@@ -53,6 +53,7 @@ function ttsConfig(cacheDir: string): TtsConfig {
       similarityBoost: config("elevenlabs.similarityBoost", 0.75),
       speed: config("elevenlabs.speed", 1),
     },
+    playbackRate: config("playbackRate", 1),
     command: config<string | undefined>("tts.command", undefined),
     cacheDir: config("cacheAudio", true) ? cacheDir : "",
   };

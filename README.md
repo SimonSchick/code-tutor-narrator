@@ -145,6 +145,26 @@ honoured as a fallback.
 `eleven_flash_v2_5` is the right default here: ~75ms and half the price of
 `eleven_multilingual_v2`, and narration doesn't need the extra expressiveness.
 
+### Speaking faster
+
+There are two speed knobs and they are not interchangeable.
+
+`codeTutor.elevenlabs.speed` changes how the voice is *synthesised*, and the API caps
+it at 1.2 — 1.25 is a 400, not a clamp, so narration fails outright.
+
+`codeTutor.playbackRate` speeds up the audio *after* it arrives, via `afplay -r` with
+the high-quality algorithm, so pitch is preserved rather than chipmunked. It has no
+1.2 ceiling, costs nothing, and doesn't invalidate the cache — playback speed isn't
+part of the cache key, so you can re-tune it as often as you like without paying for
+another synthesis. It's the right knob for genuinely fast narration:
+
+```jsonc
+"codeTutor.playbackRate": 1.5
+```
+
+The two stack, so 1.2 synthesis × 1.5 playback ≈ 1.8× overall. Past roughly 2× the
+articulation starts to blur, but that's taste rather than a limit.
+
 Budget roughly: continuous speech runs ~800 characters/minute, so a solid hour of
 *talking* is around $2.50 — realistically closer to $1/hour once you account for
 pauses and questions. Synthesised audio is cached by content hash, so re-walking
@@ -178,7 +198,8 @@ would for character work.
 | `codeTutor.elevenlabs.baseUrl` | `https://api.elevenlabs.io` | Override for a proxy or a test stub. |
 | `codeTutor.elevenlabs.stability` | `0.5` | 0 is expressive and variable, 1 is flat. |
 | `codeTutor.elevenlabs.similarityBoost` | `0.75` | How closely to match the reference voice. |
-| `codeTutor.elevenlabs.speed` | `1` | Speech speed multiplier. Must be 0.7–1.2; outside that the API returns 400 and nothing is spoken. |
+| `codeTutor.elevenlabs.speed` | `1` | Synthesis speed. Must be 0.7–1.2; outside that the API returns 400 and nothing is spoken. |
+| `codeTutor.playbackRate` | `1` | Local playback speed, applied after synthesis. No 1.2 ceiling — this is the knob for fast narration. |
 | `codeTutor.cacheAudio` | `true` | Cache synthesised audio so replays are free. |
 
 Blank values fall back to the default rather than being sent as empty, so clearing a
