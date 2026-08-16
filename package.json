@@ -1,0 +1,59 @@
+{
+  "name": "code-tutor-narrator",
+  "displayName": "Code Tutor Narrator",
+  "description": "Lets an agent drive VS Code as a tutor: scroll to code, highlight it, and narrate it aloud. Exposes an MCP server.",
+  "version": "0.2.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "test": "tsc -p . && node test/test-mcp.js",
+    "package": "vsce package --allow-missing-repository --skip-license",
+    "install-ext": "code --install-extension $(ls -t *.vsix | head -1) --force"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.7.2",
+    "@vscode/vsce": "^3.2.1"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeTutor.clear",
+        "title": "Code Tutor: Clear highlight"
+      },
+      {
+        "command": "codeTutor.showStatus",
+        "title": "Code Tutor: Show server status"
+      }
+    ],
+    "configuration": {
+      "title": "Code Tutor Narrator",
+      "properties": {
+        "codeTutor.port": {
+          "type": "number",
+          "default": 51730,
+          "description": "Loopback port for the MCP server."
+        },
+        "codeTutor.voice": {
+          "type": "string",
+          "default": "Samantha",
+          "description": "macOS `say` voice used for narration. Run `say -v '?'` to list."
+        },
+        "codeTutor.rate": {
+          "type": "number",
+          "default": 175,
+          "description": "Words per minute for narration."
+        }
+      }
+    }
+  }
+}
