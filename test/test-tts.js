@@ -182,6 +182,22 @@ const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "tutor-cache-"));
 
   check("stop() is a no-op when idle", speaker.stop() === false, "returned true");
 
+  // --- interrupting one call must not strand the next ------------------------
+  // The killed process reports `close` after its replacement is already
+  // running. If that handler clears the shared handle blindly, the live
+  // process becomes unstoppable and talks over everything after it.
+  const slow = createSpeaker(() => ({
+    ...config(),
+    provider: "command",
+    command: "sleep 5",
+  }));
+  slow.speak("first", false);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  slow.speak("second", false); // stops the first, starts a second
+  await new Promise((resolve) => setTimeout(resolve, 400)); // let `close` land
+  check("a replaced process is still stoppable",
+    slow.stop() === true, "stop() found nothing to kill");
+
   stub.close();
   fs.rmSync(cacheDir, { recursive: true, force: true });
   console.log(failures ? `\n${failures} FAILURE(S)` : "\nall checks passed");
